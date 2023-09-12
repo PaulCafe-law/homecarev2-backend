@@ -1,0 +1,4 @@
+runtime: nodejs18
+service: server
+env_variables:
+  GAE_DB_SOCKET: "/cloudsql/home-care-and-partner-398410:asia-east1:homecarev2-sql"

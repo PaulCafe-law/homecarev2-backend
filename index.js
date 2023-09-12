@@ -7,6 +7,7 @@ const cors = require('cors');
 const http = require('http');
 const WebSocket = require('ws');
 
+
 // 跟chatroom有關開始:
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
@@ -15,11 +16,18 @@ const port = process.env.PORT || 8080;
 
 // 連線後端資料庫開始
 var con = mysql.createConnection({
-    host: "localhost",
     user: "root",
     password: "0430",
-    database : 'homecarev1'
+    database : 'homecarev1',
+    socketPath: process.env.GAE_DB_SOCKET
   });
+
+// if(process.env.NODE_ENV == "production"){
+//   con.socketPath = process.env.GAE_DB_SOCKET;
+// }
+// else{
+//   con.host = "127.0.0.1";
+// }
   
 con.connect(function(err) {
     if (err) throw err;
@@ -34,6 +42,7 @@ con.query('SHOW TABLES', function (error, results, fields) {
   })
 
 
+
 // middleware開始 
 //將request進來的 data 轉成 json()
 app.use(bodyParser.json());
@@ -41,9 +50,20 @@ app.use(bodyParser.urlencoded({
     extended: true
 }));
 app.use(express.static(path.join(__dirname, '..', '..' ,'client', 'src')));
-app.use(cors());
+// 允许来自 https://home-care-and-partner-398410.de.r.appspot.com 的请求
+const corsOptions = {
+  origin: 'https://home-care-and-partner-398410.de.r.appspot.com',
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS', // 允许的 HTTP 方法
+  credentials: true, // 是否允许发送凭据（如 Cookie）
+  optionsSuccessStatus: 204, // 预检请求成功的状态码
+};
+app.use(cors(corsOptions));
+// app.use(cors);
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // res.setHeader('Access-Control-Allow-Origin', '*');
+  // res.header("Access-Control-Allow-Origin", "*");
+  res.set('Access-Control-Allow-Origin', '*');
+  
   next();
 });
 // middleware結束
@@ -155,12 +175,16 @@ app.post('/checkLogin', (req, res) => {
   con.query('SELECT * FROM users WHERE email = ?', [email], (error, results) => {
     if (error) {
       console.error('資料庫查詢錯誤', error);
+      // res.header("Access-Control-Allow-Origin", "*");
+      res.set('Access-Control-Allow-Origin', '*');
       res.json({ success: false, message: '資料庫查詢錯誤' });
       return;
     }
 
     if (results.length === 0) {
       // 如果找不到對應的 email，回傳失敗
+      // res.header("Access-Control-Allow-Origin", "*");
+      res.set('Access-Control-Allow-Origin', '*');
       res.json({ success: false, message: 'Email 不存在' });
     } 
     else {
@@ -168,10 +192,14 @@ app.post('/checkLogin', (req, res) => {
       const user = results[0];
       if (user.password === password) {
         // 密碼正確，回傳成功
+        // res.header("Access-Control-Allow-Origin", "*");
+        res.set('Access-Control-Allow-Origin', '*');
         res.json({ success: true, message: '登入成功',  user_id: user.user_id });
       } 
       else {
         // 密碼錯誤，回傳失敗
+        // res.header("Access-Control-Allow-Origin", "*");
+        res.set('Access-Control-Allow-Origin', '*');
         res.json({ success: false, message: '密碼錯誤' });
       }
     }
